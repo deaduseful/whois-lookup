@@ -8,5 +8,10 @@
             "email": "jpswade@gmail.com"
         }
     ],
+    "autoload": {
+        "psr-4": {
+            "Deaduseful\\": "src"
+        }
+    },
     "require": {}
 }
