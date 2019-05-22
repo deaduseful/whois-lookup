@@ -1,0 +1,12 @@
+{
+    "name": "deaduseful/whois-lookup",
+    "description": "A simple domain whois lookup package",
+    "type": "library",
+    "authors": [
+        {
+            "name": "James Wade",
+            "email": "jpswade@gmail.com"
+        }
+    ],
+    "require": {}
+}
