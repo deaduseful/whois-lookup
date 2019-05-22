@@ -2,5 +2,5 @@
 
 include __DIR__ . '/../src/Whois/Lookup.php';
 
-$whois = new Deaduseful\Whois\Lookup();
-echo $whois->lookup('uk');
+$lookup = new Deaduseful\Whois\Lookup();
+echo $lookup->lookup('example.com', 'whois.verisign-grs.com');
