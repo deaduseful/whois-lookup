@@ -32,9 +32,11 @@ class Lookup {
 
     /**
      * @param $query
+     * @param string $host
+     * @param int $port
      * @return string
      */
-    public function lookup($query) {
-        return $this->query($query . PHP_EOL);
+    public function lookup($query, string $host = self::HOST, int $port = self::PORT) {
+        return $this->query($query . PHP_EOL, $host, $port);
     }
 }
