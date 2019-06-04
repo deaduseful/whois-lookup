@@ -4,49 +4,79 @@ namespace Deaduseful\Whois;
 
 use UnexpectedValueException;
 
-class Lookup {
+/**
+ * Class Lookup
+ * @package Deaduseful\Whois
+ */
+class Lookup
+{
 
-    /** @var string Default whois server host. */
+    /** @const string Default server host. */
     const HOST = 'whois.iana.org';
 
-    /** @var int Default whois server port. */
+    /** @const int Default server port. */
     const PORT = 43;
 
-    /** @var string End of Line. */
+    /** @const string End of Line. */
     const EOL = "\r\n";
 
-    /** @var int Timeout for query. */
+    /** @const int Timeout (in seconds) for query. */
     const TIMEOUT = 1;
 
-    /** @var int Max length of content. */
+    /** @const int Max length of content. */
     const MAX_LENGTH = 2048;
 
-    /** @var array The options array for stream_context_create */
-    private $options = [];
+    /** @var string Server host. */
+    private $host = self::HOST;
+
+    /** @var int Server port. */
+    private $port = self::PORT;
+
+    /** @var resource A streams context. */
+    private $context = null;
+
+    /** @var int Timeout for query. */
+    private $timeout = self::TIMEOUT;
+
+    /** @var int Bitmask field which may be set to any combination of connection flags. */
+    private $flags = STREAM_CLIENT_CONNECT;
 
     /**
-     * @param string $payload
+     * Lookup constructor.
+     *
      * @param string $host
      * @param int $port
-     * @param int $timeout
-     * @param int $flags
-     * @param null $context
+     */
+    public function __construct(string $host = self::HOST, int $port = self::PORT)
+    {
+        $this->setHost($host);
+        $this->setPort($port);
+    }
+
+    /**
+     * @param string $query
      * @return string
      */
-    private function query(string $payload, string $host = self::HOST, int $port = self::PORT, int $timeout = self::TIMEOUT, $flags = STREAM_CLIENT_CONNECT, $context = null)
+    public function query($query)
     {
+        $query = trim($query) . self::EOL;
+        $host = $this->getHost();
         if (empty($host)) {
             throw new UnexpectedValueException("Host cannot be empty");
         }
+        $port = $this->getPort();
         $remoteSocket = sprintf('tcp://%s:%d', $host, $port);
+        $context = $this->getContext();
+        $timeout = $this->getTimeout();
+        $flags = $this->getFlags();
         if ($context === null) {
-            $context = stream_context_create($this->getOptions());
+            $context = stream_context_create();
         }
         $client = @stream_socket_client($remoteSocket, $errorNumber, $errorMessage, $timeout, $flags, $context);
         if ($client === false) {
             throw new UnexpectedValueException(sprintf("Unable to open socket (%s:%d) Error: %s (#%d)", $host, $port, $errorMessage, $errorNumber), $errorNumber);
         }
-        fwrite($client, $payload);
+        fwrite($client, $query);
         $output = stream_get_contents($client, self::MAX_LENGTH);
         fclose($client);
         if ($output === false) {
@@ -56,30 +86,62 @@ class Lookup {
     }
 
     /**
-     * @param $query
-     * @param string $host
-     * @param int $port
      * @return string
      */
-    public function lookup($query, string $host = self::HOST, int $port = self::PORT) {
-        return $this->query($query . self::EOL, $host, $port);
-    }
-
-    /**
-     * @return array
-     */
-    private function getOptions()
+    public function getHost()
     {
-        return $this->options;
+        return $this->host;
     }
 
     /**
-     * @param array $options
+     * @param string $host
      * @return Lookup
      */
-    public function setOptions(array $options): Lookup
+    public function setHost($host)
     {
-        $this->options = $options;
+        $this->host = $host;
         return $this;
+    }
+
+    /**
+     * @return int
+     */
+    public function getPort()
+    {
+        return $this->port;
+    }
+
+    /**
+     * @param int $port
+     * @return Lookup
+     */
+    public function setPort($port)
+    {
+        $this->port = $port;
+        return $this;
+    }
+
+    /**
+     * @return resource
+     */
+    public function getContext()
+    {
+        return $this->context;
+    }
+
+    /**
+     * @return int
+     */
+    public function getTimeout()
+    {
+        return $this->timeout;
+    }
+
+    /**
+     * @return int
+     */
+    public function getFlags()
+    {
+        return $this->flags;
     }
 }

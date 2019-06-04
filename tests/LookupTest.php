@@ -11,7 +11,7 @@ class lookupTest extends TestCase
     {
         $query = 'example.com';
         $lookup = new Lookup();
-        $result = $lookup->lookup($query);
+        $result = $lookup->query($query);
         $this->assertStringContainsStringIgnoringCase($query, $result);
     }
 }
