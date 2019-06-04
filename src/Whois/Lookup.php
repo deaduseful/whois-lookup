@@ -29,7 +29,7 @@ class Lookup {
      * @param string $host
      * @param int $port
      * @param int $timeout
-     * @param null $flags
+     * @param int $flags
      * @param null $context
      * @return string
      */
