@@ -24,7 +24,7 @@ class Lookup
     const TIMEOUT = 1;
 
     /** @const int Max length of content. */
-    const MAX_LENGTH = 2048;
+    const MAX_LENGTH = 1024 * 16;
 
     /** @var string Server host. */
     private $host = self::HOST;
