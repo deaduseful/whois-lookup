@@ -7,11 +7,26 @@ use PHPUnit\Framework\TestCase;
 
 class lookupTest extends TestCase
 {
-    public function testLookup()
+    /**
+     * @dataProvider domainTests
+     * @param string $query
+     * @param string $host
+     */
+    public function testLookup($query, $host)
     {
-        $query = 'example.com';
         $lookup = new Lookup();
-        $result = $lookup->query($query);
+        $result = $lookup->setHost($host)->query($query);
         $this->assertStringContainsStringIgnoringCase($query, $result);
+    }
+
+    /**
+     * @return array
+     */
+    public function domainTests() {
+        return [
+            ['example.com', 'whois.verisign-grs.com'],
+            ['uk', 'whois.iana.org'],
+            ['example.co.uk', 'whois.nic.uk'],
+        ];
     }
 }
