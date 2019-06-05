@@ -26,6 +26,9 @@ class Lookup
     /** @const int Max length of content. */
     const MAX_LENGTH = 1024 * 16;
 
+    /** @var string Query. */
+    private $query = '';
+
     /** @var string Server host. */
     private $host = self::HOST;
 
@@ -41,25 +44,34 @@ class Lookup
     /** @var int Bitmask field which may be set to any combination of connection flags. */
     private $flags = STREAM_CLIENT_CONNECT;
 
+    /** @var string The result of the lookup. */
+    private $result = '';
+
     /**
      * Lookup constructor.
      *
+     * @param string $query
      * @param string $host
      * @param int $port
      */
-    public function __construct(string $host = self::HOST, int $port = self::PORT)
+    public function __construct(string $query = '', string $host = self::HOST, int $port = self::PORT)
     {
-        $this->setHost($host);
-        $this->setPort($port);
+        $this->setQuery($query)
+            ->setHost($host)
+            ->setPort($port)
+            ->setResult($this->query());
     }
 
     /**
-     * @param string $query
+     * @param string|null $query
      * @return string
      */
-    public function query($query)
+    public function query($query = null)
     {
-        $query = trim($query) . self::EOL;
+        if ($query === null) {
+            $query = $this->getQuery();
+        }
+        $payload = trim($query) . self::EOL;
         $host = $this->getHost();
         if (empty($host)) {
             throw new UnexpectedValueException("Host cannot be empty");
@@ -76,7 +88,7 @@ class Lookup
         if ($client === false) {
             throw new UnexpectedValueException(sprintf("Unable to open socket (%s:%d) Error: %s (#%d)", $host, $port, $errorMessage, $errorNumber), $errorNumber);
         }
-        fwrite($client, $query);
+        fwrite($client, $payload);
         $output = stream_get_contents($client, self::MAX_LENGTH);
         fclose($client);
         if ($output === false) {
@@ -143,5 +155,41 @@ class Lookup
     public function getFlags()
     {
         return $this->flags;
+    }
+
+    /**
+     * @return string
+     */
+    public function getQuery(): string
+    {
+        return $this->query;
+    }
+
+    /**
+     * @param string $query
+     * @return Lookup
+     */
+    public function setQuery(string $query): Lookup
+    {
+        $this->query = $query;
+        return $this;
+    }
+
+    /**
+     * @return string
+     */
+    public function getResult(): string
+    {
+        return $this->result;
+    }
+
+    /**
+     * @param string $result
+     * @return Lookup
+     */
+    public function setResult(string $result): Lookup
+    {
+        $this->result = $result;
+        return $this;
     }
 }
