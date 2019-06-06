@@ -192,4 +192,39 @@ class Lookup
         $this->result = $result;
         return $this;
     }
+
+    /**
+     * Get the Top Level Domain Extension from a domain.
+     *
+     * @param $domain
+     * @return string
+     */
+    public function getExtension($domain)
+    {
+        if (filter_var($domain, FILTER_VALIDATE_DOMAIN)) {
+            return pathinfo($domain, PATHINFO_EXTENSION);
+        }
+        return '';
+    }
+
+    /**
+     * Parse Whois Server from the lookup result.
+     *
+     * @param string $haystack
+     * @param string $needle
+     * @return string
+     */
+    public function parseServer($haystack, $needle = 'whois')
+    {
+        $lines = explode(PHP_EOL, $haystack);
+        foreach ($lines as $line) {
+            if (strpos($line, ':')) {
+                list($key, $value) = explode(':', $line, 2);
+                if ($key === $needle) {
+                    return trim($value);
+                }
+            }
+        }
+        return '';
+    }
 }
