@@ -70,16 +70,7 @@ class Lookup
     {
         $payload = $this->preparePayload($query);
         $remoteSocket = $this->prepareRemoteSocket();
-        $context = $this->getContext();
-        $timeout = $this->getTimeout();
-        $flags = $this->getFlags();
-        if ($context === null) {
-            $context = stream_context_create();
-        }
-        $client = @stream_socket_client($remoteSocket, $errorNumber, $errorMessage, $timeout, $flags, $context);
-        if ($client === false) {
-            throw new UnexpectedValueException(sprintf("Unable to open socket (%s) Error: %s (#%d)", $remoteSocket, $errorMessage, $errorNumber), $errorNumber);
-        }
+        $client = $this->prepareStreamSocketClient($remoteSocket);
         fwrite($client, $payload);
         $output = stream_get_contents($client, self::MAX_LENGTH);
         fclose($client);
@@ -251,5 +242,24 @@ class Lookup
         $query = trim($query);
         $payload = $query . self::EOL;
         return $payload;
+    }
+
+    /**
+     * @param string $remoteSocket
+     * @return bool|resource
+     */
+    private function prepareStreamSocketClient(string $remoteSocket)
+    {
+        $context = $this->getContext();
+        $timeout = $this->getTimeout();
+        $flags = $this->getFlags();
+        if ($context === null) {
+            $context = stream_context_create();
+        }
+        $client = @stream_socket_client($remoteSocket, $errorNumber, $errorMessage, $timeout, $flags, $context);
+        if ($client === false) {
+            throw new UnexpectedValueException(sprintf("Unable to open socket (%s) Error: %s (#%d)", $remoteSocket, $errorMessage, $errorNumber), $errorNumber);
+        }
+        return $client;
     }
 }
