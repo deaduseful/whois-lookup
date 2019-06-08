@@ -72,12 +72,7 @@ class Lookup
             $query = $this->getQuery();
         }
         $payload = trim($query) . self::EOL;
-        $host = $this->getHost();
-        if (empty($host)) {
-            throw new UnexpectedValueException("Host cannot be empty");
-        }
-        $port = $this->getPort();
-        $remoteSocket = sprintf('tcp://%s:%d', $host, $port);
+        $remoteSocket = $this->buildRemoteSocket();
         $context = $this->getContext();
         $timeout = $this->getTimeout();
         $flags = $this->getFlags();
@@ -86,13 +81,13 @@ class Lookup
         }
         $client = @stream_socket_client($remoteSocket, $errorNumber, $errorMessage, $timeout, $flags, $context);
         if ($client === false) {
-            throw new UnexpectedValueException(sprintf("Unable to open socket (%s:%d) Error: %s (#%d)", $host, $port, $errorMessage, $errorNumber), $errorNumber);
+            throw new UnexpectedValueException(sprintf("Unable to open socket (%s) Error: %s (#%d)", $remoteSocket, $errorMessage, $errorNumber), $errorNumber);
         }
         fwrite($client, $payload);
         $output = stream_get_contents($client, self::MAX_LENGTH);
         fclose($client);
         if ($output === false) {
-            throw new UnexpectedValueException(sprintf("Failed to get a response (%s:%d)", $host, $port));
+            throw new UnexpectedValueException(sprintf("Failed to get a response (%s)", $remoteSocket));
         }
         return $output;
     }
@@ -226,5 +221,21 @@ class Lookup
             }
         }
         return '';
+    }
+
+    /**
+     * @return string
+     */
+    private function buildRemoteSocket(): string
+    {
+        $host = $this->getHost();
+        if (empty($host)) {
+            throw new UnexpectedValueException("Host cannot be empty");
+        }
+        $port = $this->getPort();
+        if (empty($port)) {
+            throw new UnexpectedValueException("Port cannot be empty");
+        }
+        return sprintf('tcp://%s:%d', $host, $port);
     }
 }
