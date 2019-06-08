@@ -70,8 +70,7 @@ class Lookup
     {
         $payload = $this->preparePayload($query);
         $remoteSocket = $this->prepareRemoteSocket();
-        $client = $this->prepareStreamSocketClient($remoteSocket);
-        return $this->streamGetContents($client, $payload, $remoteSocket);
+        return $this->getContents($payload, $remoteSocket);
     }
 
     /**
@@ -258,13 +257,13 @@ class Lookup
     }
 
     /**
-     * @param bool|resource $client
      * @param string $payload
      * @param string $remoteSocket
      * @return bool|string
      */
-    private function streamGetContents($client, string $payload, string $remoteSocket)
+    private function getContents(string $payload, string $remoteSocket)
     {
+        $client = $this->prepareStreamSocketClient($remoteSocket);
         fwrite($client, $payload);
         $contents = stream_get_contents($client, self::MAX_LENGTH);
         fclose($client);
