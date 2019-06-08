@@ -68,11 +68,8 @@ class Lookup
      */
     public function query($query = null)
     {
-        if ($query === null) {
-            $query = $this->getQuery();
-        }
-        $payload = trim($query) . self::EOL;
-        $remoteSocket = $this->buildRemoteSocket();
+        $payload = $this->preparePayload($query);
+        $remoteSocket = $this->prepareRemoteSocket();
         $context = $this->getContext();
         $timeout = $this->getTimeout();
         $flags = $this->getFlags();
@@ -226,7 +223,7 @@ class Lookup
     /**
      * @return string
      */
-    private function buildRemoteSocket(): string
+    private function prepareRemoteSocket(): string
     {
         $host = $this->getHost();
         if (empty($host)) {
@@ -237,5 +234,22 @@ class Lookup
             throw new UnexpectedValueException("Port cannot be empty");
         }
         return sprintf('tcp://%s:%d', $host, $port);
+    }
+
+    /**
+     * @param $query
+     * @return string
+     */
+    private function preparePayload($query): string
+    {
+        if ($query === null) {
+            $query = $this->getQuery();
+        }
+        if (empty($query)) {
+            throw new UnexpectedValueException("Query cannot be empty");
+        }
+        $query = trim($query);
+        $payload = $query . self::EOL;
+        return $payload;
     }
 }
