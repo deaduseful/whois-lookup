@@ -71,13 +71,7 @@ class Lookup
         $payload = $this->preparePayload($query);
         $remoteSocket = $this->prepareRemoteSocket();
         $client = $this->prepareStreamSocketClient($remoteSocket);
-        fwrite($client, $payload);
-        $output = stream_get_contents($client, self::MAX_LENGTH);
-        fclose($client);
-        if ($output === false) {
-            throw new UnexpectedValueException(sprintf("Failed to get a response (%s)", $remoteSocket));
-        }
-        return $output;
+        return $this->streamGetContents($client, $payload, $remoteSocket);
     }
 
     /**
@@ -261,5 +255,22 @@ class Lookup
             throw new UnexpectedValueException(sprintf("Unable to open socket (%s) Error: %s (#%d)", $remoteSocket, $errorMessage, $errorNumber), $errorNumber);
         }
         return $client;
+    }
+
+    /**
+     * @param bool|resource $client
+     * @param string $payload
+     * @param string $remoteSocket
+     * @return bool|string
+     */
+    private function streamGetContents($client, string $payload, string $remoteSocket)
+    {
+        fwrite($client, $payload);
+        $contents = stream_get_contents($client, self::MAX_LENGTH);
+        fclose($client);
+        if ($contents === false) {
+            throw new UnexpectedValueException(sprintf("Failed to get a response (%s)", $remoteSocket));
+        }
+        return $contents;
     }
 }
