@@ -10,203 +10,98 @@ use UnexpectedValueException;
  */
 class Lookup
 {
-
     /** @const string Default server host. */
-    const HOST = 'whois.iana.org';
+    public const HOST = 'whois.iana.org';
 
     /** @const int Default server port. */
-    const PORT = 43;
+    public const PORT = 43;
 
     /** @const string End of Line. */
-    const EOL = "\r\n";
+    public const EOL = "\r\n";
 
     /** @const int Timeout (in seconds) for query. */
-    const TIMEOUT = 1;
+    public const TIMEOUT = 1;
 
     /** @const int Max length of content. */
     const MAX_LENGTH = 1024 * 16;
 
-    /** @var string Query. */
-    private $query = '';
+    private ?string $query = '';
 
     /** @var string Server host. */
-    private $host = self::HOST;
+    private string $host = self::HOST;
 
     /** @var int Server port. */
-    private $port = self::PORT;
+    private int $port = self::PORT;
 
-    /** @var resource A streams context. */
+    /** @var resource A stream's context. */
     private $context = null;
 
     /** @var int Timeout for query. */
-    private $timeout = self::TIMEOUT;
+    private int $timeout = self::TIMEOUT;
 
     /** @var int Bitmask field which may be set to any combination of connection flags. */
-    private $flags = STREAM_CLIENT_CONNECT;
+    private int $flags = STREAM_CLIENT_CONNECT;
 
-    /** @var string The result of the lookup. */
-    private $result = '';
+    /** @var ?string The result of the lookup. */
+    private ?string $result = null;
 
     /**
      * Lookup constructor.
-     *
-     * @param string $query
-     * @param string $host
-     * @param int $port
      */
-    public function __construct(string $query = '', string $host = self::HOST, int $port = self::PORT)
+    public function __construct(?string $query = null, string $host = self::HOST, int $port = self::PORT)
     {
         $this->setQuery($query)
             ->setHost($host)
-            ->setPort($port)
-            ->setResult($this->query());
+            ->setPort($port);
     }
 
-    /**
-     * @param string|null $query
-     * @return string
-     */
-    public function query($query = null)
+    public function query(?string $query = null): string
     {
-        $payload = $this->preparePayload($query);
-        $remoteSocket = $this->prepareRemoteSocket();
-        return $this->getContents($payload, $remoteSocket);
+        return $this->setQuery($query)->getResult();
     }
 
-    /**
-     * @return string
-     */
-    public function getHost()
-    {
-        return $this->host;
-    }
-
-    /**
-     * @param string $host
-     * @return Lookup
-     */
-    public function setHost($host)
-    {
-        $this->host = $host;
-        return $this;
-    }
-
-    /**
-     * @return int
-     */
-    public function getPort()
-    {
-        return $this->port;
-    }
-
-    /**
-     * @param int $port
-     * @return Lookup
-     */
-    public function setPort($port)
-    {
-        $this->port = $port;
-        return $this;
-    }
-
-    /**
-     * @return resource
-     */
-    public function getContext()
-    {
-        return $this->context;
-    }
-
-    /**
-     * @return int
-     */
-    public function getTimeout()
-    {
-        return $this->timeout;
-    }
-
-    /**
-     * @return int
-     */
-    public function getFlags()
-    {
-        return $this->flags;
-    }
-
-    /**
-     * @return string
-     */
-    public function getQuery(): string
-    {
-        return $this->query;
-    }
-
-    /**
-     * @param string $query
-     * @return Lookup
-     */
-    public function setQuery(string $query): Lookup
-    {
-        $this->query = $query;
-        return $this;
-    }
-
-    /**
-     * @return string
-     */
     public function getResult(): string
     {
+        if (empty($this->result)) {
+            $this->setResult($this->perform());
+        }
         return $this->result;
     }
 
-    /**
-     * @param string $result
-     * @return Lookup
-     */
     public function setResult(string $result): Lookup
     {
         $this->result = $result;
         return $this;
     }
 
-    /**
-     * Get the Top Level Domain Extension from a domain.
-     *
-     * @param $domain
-     * @return string
-     */
-    public function getExtension($domain)
+    private function perform(): string
     {
-        if (filter_var($domain, FILTER_VALIDATE_DOMAIN)) {
-            return pathinfo($domain, PATHINFO_EXTENSION);
-        }
-        return '';
+        $payload = $this->preparePayload();
+        $remoteSocket = $this->prepareRemoteSocket();
+        return $this->getContents($payload, $remoteSocket);
     }
 
-    /**
-     * Parse Whois Server from the lookup result.
-     *
-     * @param string $haystack
-     * @param string $needle
-     * @return string
-     */
-    public function parseServer($haystack, $needle = 'whois')
+    private function preparePayload(): string
     {
-        $lines = explode(PHP_EOL, $haystack);
-        foreach ($lines as $line) {
-            if (strpos($line, ':')) {
-                list($key, $value) = explode(':', $line, 2);
-                if ($key === $needle) {
-                    return trim($value);
-                }
-            }
+        $query = $this->getQuery();
+        if (empty($query)) {
+            throw new UnexpectedValueException('Query cannot be empty');
         }
-        return '';
+        $query = trim($query);
+        return $query . self::EOL;
     }
 
-    /**
-     * @return string
-     */
+    public function getQuery(): ?string
+    {
+        return $this->query;
+    }
+
+    public function setQuery(?string $query = null): Lookup
+    {
+        $this->query = $query;
+        return $this;
+    }
+
     private function prepareRemoteSocket(): string
     {
         $host = $this->getHost();
@@ -220,27 +115,40 @@ class Lookup
         return sprintf('tcp://%s:%d', $host, $port);
     }
 
-    /**
-     * @param $query
-     * @return string
-     */
-    private function preparePayload($query): string
+    public function getHost(): string
     {
-        if ($query === null) {
-            $query = $this->getQuery();
-        }
-        if (empty($query)) {
-            throw new UnexpectedValueException("Query cannot be empty");
-        }
-        $query = trim($query);
-        $payload = $query . self::EOL;
-        return $payload;
+        return $this->host;
     }
 
-    /**
-     * @param string $remoteSocket
-     * @return bool|resource
-     */
+    public function setHost(string $host): Lookup
+    {
+        $this->host = $host;
+        return $this;
+    }
+
+    public function getPort(): int
+    {
+        return $this->port;
+    }
+
+    public function setPort(int $port): Lookup
+    {
+        $this->port = $port;
+        return $this;
+    }
+
+    private function getContents(string $payload, string $remoteSocket): string
+    {
+        $client = $this->prepareStreamSocketClient($remoteSocket);
+        fwrite($client, $payload);
+        $contents = stream_get_contents($client, self::MAX_LENGTH);
+        fclose($client);
+        if ($contents === false) {
+            throw new UnexpectedValueException(sprintf('Failed to get a response (%s)', $remoteSocket));
+        }
+        return $contents;
+    }
+
     private function prepareStreamSocketClient(string $remoteSocket)
     {
         $context = $this->getContext();
@@ -249,27 +157,48 @@ class Lookup
         if ($context === null) {
             $context = stream_context_create();
         }
-        $client = @stream_socket_client($remoteSocket, $errorNumber, $errorMessage, $timeout, $flags, $context);
+        $client = stream_socket_client($remoteSocket, $errorNumber, $errorMessage, $timeout, $flags, $context);
         if ($client === false) {
-            throw new UnexpectedValueException(sprintf("Unable to open socket (%s) Error: %s (#%d)", $remoteSocket, $errorMessage, $errorNumber), $errorNumber);
+            throw new UnexpectedValueException(sprintf('Unable to open socket (%s) Error: %s (#%d)', $remoteSocket, $errorMessage, $errorNumber), $errorNumber);
         }
         return $client;
     }
 
-    /**
-     * @param string $payload
-     * @param string $remoteSocket
-     * @return bool|string
-     */
-    private function getContents(string $payload, string $remoteSocket)
+    public function getContext()
     {
-        $client = $this->prepareStreamSocketClient($remoteSocket);
-        fwrite($client, $payload);
-        $contents = stream_get_contents($client, self::MAX_LENGTH);
-        fclose($client);
-        if ($contents === false) {
-            throw new UnexpectedValueException(sprintf("Failed to get a response (%s)", $remoteSocket));
+        return $this->context;
+    }
+
+    public function getTimeout(): int
+    {
+        return $this->timeout;
+    }
+
+    public function setTimeout(int $timeout): Lookup
+    {
+        $this->timeout = $timeout;
+        return $this;
+    }
+
+    public function getFlags(): int
+    {
+        return $this->flags;
+    }
+
+    /**
+     * Parse Whois Server from the lookup result.
+     */
+    public function parseServer(string $haystack, string $needle = 'whois'): string
+    {
+        $lines = explode(PHP_EOL, $haystack);
+        foreach ($lines as $line) {
+            if (strpos($line, ':')) {
+                list($key, $value) = explode(':', $line, 2);
+                if ($key === $needle) {
+                    return trim($value);
+                }
+            }
         }
-        return $contents;
+        return '';
     }
 }
