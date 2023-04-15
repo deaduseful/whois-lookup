@@ -25,4 +25,15 @@ class LookupTest extends TestCase
             ['example.co.uk', 'whois.nic.uk'],
         ];
     }
+
+    public function testParseServer()
+    {
+        $query = 'publicdomainregistry.com';
+        $expected = 'whois.publicdomainregistry.com';
+        $needle = 'Registrar WHOIS Server';
+        $haystack = file_get_contents(__DIR__ . '/data/' . $query . '.txt');
+        $lookup = new Lookup();
+        $server = $lookup->parseServer($haystack, $needle);
+        $this->assertEquals($expected, $server);
+    }
 }

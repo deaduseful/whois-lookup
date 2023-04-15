@@ -1,0 +1,17 @@
+   Domain Name: PUBLICDOMAINREGISTRY.COM
+   Registry Domain ID: 108966382_DOMAIN_COM-VRSN
+   Registrar WHOIS Server: whois.PublicDomainRegistry.com
+   Registrar URL: http://www.publicdomainregistry.com
+   Updated Date: 2019-11-27T16:33:36Z
+   Creation Date: 2003-12-28T17:25:13Z
+   Registry Expiry Date: 2028-12-28T17:25:13Z
+   Registrar: PDR Ltd. d/b/a PublicDomainRegistry.com
+   Registrar IANA ID: 303
+   Registrar Abuse Contact Email: abuse-contact@publicdomainregistry.com
+   Registrar Abuse Contact Phone: +1.2013775952
+   Domain Status: clientTransferProhibited https://icann.org/epp#clientTransferProhibited
+   Name Server: ANDY.NS.CLOUDFLARE.COM
+   Name Server: DORA.NS.CLOUDFLARE.COM
+   DNSSEC: unsigned
+   URL of the ICANN Whois Inaccuracy Complaint Form: https://www.icann.org/wicf/
+>>> Last update of whois database: 2023-04-15T21:03:39Z <<<

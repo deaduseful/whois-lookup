@@ -188,17 +188,20 @@ class Lookup
     /**
      * Parse Whois Server from the lookup result.
      */
-    public function parseServer(string $haystack, string $needle = 'whois'): string
+    public function parseServer(string $haystack, string $needle = 'whois', $default = null): ?string
     {
         $lines = explode(PHP_EOL, $haystack);
         foreach ($lines as $line) {
             if (strpos($line, ':')) {
                 list($key, $value) = explode(':', $line, 2);
-                if ($key === $needle) {
-                    return trim($value);
+                if (trim($key) === $needle) {
+                    $result = trim($value);
+                    if ($result) {
+                        return strtolower($result);
+                    }
                 }
             }
         }
-        return '';
+        return $default;
     }
 }
