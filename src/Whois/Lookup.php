@@ -2,6 +2,7 @@
 
 namespace Deaduseful\Whois;
 
+use RuntimeException;
 use UnexpectedValueException;
 
 /**
@@ -106,11 +107,11 @@ class Lookup
     {
         $host = $this->getHost();
         if (empty($host)) {
-            throw new UnexpectedValueException("Host cannot be empty");
+            throw new UnexpectedValueException('Host cannot be empty');
         }
         $port = $this->getPort();
         if (empty($port)) {
-            throw new UnexpectedValueException("Port cannot be empty");
+            throw new UnexpectedValueException('Port cannot be empty');
         }
         return sprintf('tcp://%s:%d', $host, $port);
     }
@@ -144,7 +145,7 @@ class Lookup
         $contents = stream_get_contents($client, self::MAX_LENGTH);
         fclose($client);
         if ($contents === false) {
-            throw new UnexpectedValueException(sprintf('Failed to get a response (%s)', $remoteSocket));
+            throw new RuntimeException(sprintf('Failed to get a response (%s)', $remoteSocket));
         }
         return $contents;
     }
@@ -154,19 +155,12 @@ class Lookup
         $context = $this->getContext();
         $timeout = $this->getTimeout();
         $flags = $this->getFlags();
-        if ($context === null) {
-            $context = stream_context_create();
-        }
-        $client = stream_socket_client($remoteSocket, $errorNumber, $errorMessage, $timeout, $flags, $context);
-        if ($client === false) {
-            throw new UnexpectedValueException(sprintf('Unable to open socket (%s) Error: %s (#%d)', $remoteSocket, $errorMessage, $errorNumber), $errorNumber);
-        }
-        return $client;
+        return $this->getClient($remoteSocket, $timeout, $flags, $context);
     }
 
     public function getContext()
     {
-        return $this->context;
+        return $this->context ?: stream_context_create();
     }
 
     public function getTimeout(): int
@@ -203,5 +197,13 @@ class Lookup
             }
         }
         return $default;
+    }
+    private function getClient(string $remoteSocket, int $timeout, int $flags, $context)
+    {
+        $client = @stream_socket_client($remoteSocket, $errorNumber, $errorMessage, $timeout, $flags, $context);
+        if ($client === false) {
+            throw new RuntimeException($errorMessage, $errorNumber);
+        }
+        return $client;
     }
 }
