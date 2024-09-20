@@ -26,6 +26,28 @@ class LookupTest extends TestCase
         ];
     }
 
+    /**
+     * @dataProvider domainTests
+     */
+    public function testLookupWithProxy(string $query, string $host)
+    {
+        require_once __DIR__ . '/../vendor/autoload.php';
+        $dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/../');
+        $dotenv->load();
+
+        $lookup = new Lookup();
+        $result = $lookup
+            ->setProxy(
+                getenv('PROXY_HOST'),
+                getenv('PROXY_PORT'),
+                getenv('PROXY_USER'),
+                getenv('PROXY_PASS')
+            )
+            ->setHost($host)
+            ->query($query);
+        $this->assertStringContainsStringIgnoringCase($query, $result);
+    }
+
     public function testParseServer()
     {
         $query = 'publicdomainregistry.com';

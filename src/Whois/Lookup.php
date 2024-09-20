@@ -12,39 +12,44 @@ use UnexpectedValueException;
 class Lookup
 {
     /** @const string Default server host. */
-    public const HOST = 'whois.iana.org';
+    protected const HOST = 'whois.iana.org';
 
     /** @const int Default server port. */
-    public const PORT = 43;
+    protected const PORT = 43;
 
     /** @const string End of Line. */
-    public const EOL = "\r\n";
+    protected const EOL = "\r\n";
 
     /** @const int Timeout (in seconds) for query. */
-    public const TIMEOUT = 1;
+    protected const TIMEOUT = 1;
 
     /** @const int Max length of content. */
-    const MAX_LENGTH = 1024 * 16;
+    protected const MAX_LENGTH = 1024 * 16;
 
-    private ?string $query = '';
+    protected ?string $query = '';
 
     /** @var string Server host. */
-    private string $host = self::HOST;
+    protected string $host = self::HOST;
 
     /** @var int Server port. */
-    private int $port = self::PORT;
+    protected int $port = self::PORT;
 
     /** @var resource A stream's context. */
-    private $context = null;
+    protected $context = null;
 
     /** @var int Timeout for query. */
-    private int $timeout = self::TIMEOUT;
+    protected int $timeout = self::TIMEOUT;
 
     /** @var int Bitmask field which may be set to any combination of connection flags. */
-    private int $flags = STREAM_CLIENT_CONNECT;
+    protected int $flags = STREAM_CLIENT_CONNECT;
 
     /** @var ?string The result of the lookup. */
-    private ?string $result = null;
+    protected ?string $result = null;
+
+    protected ?string $proxyHost = null;
+    protected ?int $proxyPort = null;
+    protected ?string $proxyUser = null;
+    protected ?string $proxyPass = null;
 
     /**
      * Lookup constructor.
@@ -77,9 +82,13 @@ class Lookup
 
     private function perform(): string
     {
-        $payload = $this->preparePayload();
-        $remoteSocket = $this->prepareRemoteSocket();
-        return $this->getContents($payload, $remoteSocket);
+        if ($this->proxyHost && $this->proxyPort) {
+            return $this->performWithProxy();
+        } else {
+            $payload = $this->preparePayload();
+            $remoteSocket = $this->prepareRemoteSocket();
+            return $this->getContents($payload, $remoteSocket);
+        }
     }
 
     private function preparePayload(): string
@@ -198,6 +207,7 @@ class Lookup
         }
         return $default;
     }
+
     private function getClient(string $remoteSocket, int $timeout, int $flags, $context)
     {
         $client = @stream_socket_client($remoteSocket, $errorNumber, $errorMessage, $timeout, $flags, $context);
@@ -205,5 +215,77 @@ class Lookup
             throw new RuntimeException($errorMessage, $errorNumber);
         }
         return $client;
+    }
+
+    public function setFlags(int $flags): Lookup
+    {
+        $this->flags = $flags;
+        return $this;
+    }
+
+    public function setProxy(string $host, int $port, ?string $user = null, ?string $pass = null): Lookup
+    {
+        $this->proxyHost = $host;
+        $this->proxyPort = $port;
+        $this->proxyUser = $user;
+        $this->proxyPass = $pass;
+        return $this;
+    }
+
+    private function performWithProxy(): string
+    {
+        $query = $this->preparePayload();
+        $proxySocket = 'tcp://' . $this->proxyHost . ':' . $this->proxyPort;
+        $proxyContext = stream_context_create([
+            'socket' => [
+                'bindto' => '0:0',
+            ],
+        ]);
+
+        $proxyConnection = stream_socket_client($proxySocket, $errno, $errstr, $this->timeout, STREAM_CLIENT_CONNECT, $proxyContext);
+
+        if (!$proxyConnection) {
+            throw new RuntimeException("Failed to connect to the SOCKS5 proxy server: $errstr ($errno)");
+        }
+
+        $handshake = "\x05\x01";
+        if ($this->proxyUser && $this->proxyPass) {
+            $handshake .= "\x02";
+        } else {
+            $handshake .= "\x00";
+        }
+        fwrite($proxyConnection, $handshake);
+
+        $response = fread($proxyConnection, 2);
+        if ($response[0] == "\x05" && $response[1] == "\x02") {
+            $auth = "\x01" . chr(strlen($this->proxyUser)) . $this->proxyUser . chr(strlen($this->proxyPass)) . $this->proxyPass;
+            fwrite($proxyConnection, $auth);
+            $response = fread($proxyConnection, 2);
+            if ($response[0] != "\x01" || $response[1] != "\x00") {
+                throw new RuntimeException("Failed to authenticate with SOCKS5 proxy server");
+            }
+        }
+
+        $request = "\x05\x01\x00\x03" . chr(strlen($this->host)) . $this->host . pack('n', $this->port);
+        fwrite($proxyConnection, $request);
+        $response = fread($proxyConnection, 1024);
+
+        if (empty($response)) {
+            throw new RuntimeException("Failed to get response");
+        }
+
+        if ($response[0] != "\x05" || $response[1] != "\x00") {
+            throw new RuntimeException("Failed to establish connection to the destination server");
+        }
+
+        @fwrite($proxyConnection, $query);
+        $response = stream_get_contents($proxyConnection);
+        fclose($proxyConnection);
+
+        if ($response === false) {
+            throw new RuntimeException("Failed to get response from the destination server");
+        }
+
+        return $response;
     }
 }
