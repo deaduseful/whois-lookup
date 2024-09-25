@@ -257,6 +257,9 @@ class Lookup
         fwrite($proxyConnection, $handshake);
 
         $response = fread($proxyConnection, 2);
+        if (empty($response)) {
+            throw new RuntimeException("Failed to get response");
+        }
         if ($response[0] == "\x05" && $response[1] == "\x02") {
             $auth = "\x01" . chr(strlen($this->proxyUser)) . $this->proxyUser . chr(strlen($this->proxyPass)) . $this->proxyPass;
             fwrite($proxyConnection, $auth);
