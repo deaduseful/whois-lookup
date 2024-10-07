@@ -242,11 +242,8 @@ class Lookup
             ],
         ]);
 
-        $proxyConnection = stream_socket_client($proxySocket, $errno, $errstr, $this->timeout, STREAM_CLIENT_CONNECT, $proxyContext);
-
-        if (!$proxyConnection) {
-            throw new RuntimeException("Failed to connect to the SOCKS5 proxy server: $errstr ($errno)");
-        }
+        $this->context = $proxyContext;
+        $proxyConnection = $this->prepareStreamSocketClient($proxySocket);
 
         $handshake = "\x05\x01";
         if ($this->proxyUser && $this->proxyPass) {
